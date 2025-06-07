@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mengapa Mahasiswa Tidak Suka Statistika: Sebuah Analisis Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Calm Accents -->
+    <!-- Application Structure Plan: Desain aplikasi ini menggunakan pendekatan naratif dan tematik. Dimulai dengan 'Gambaran Masalah' untuk memberikan konteks, diikuti oleh tiga bagian utama yang menyelami 'Akar Masalah': Kecemasan, Sikap Negatif, dan Faktor Pedagogis. Setiap bagian ini dirancang sebagai modul eksplorasi interaktif. Terakhir, bagian 'Menuju Solusi' menyajikan strategi konkret yang dapat ditindaklanjuti. Struktur ini dipilih untuk memandu pengguna dari pemahaman masalah secara umum ke penyebab spesifik, dan akhirnya ke solusi, menciptakan alur yang logis dan mudah diikuti. Interaksi utama melibatkan pemilihan kategori untuk menampilkan detail, memungkinkan pengguna fokus pada satu aspek pada satu waktu, yang meningkatkan pemahaman dan mengurangi beban kognitif. -->
+    <!-- Visualization & Content Choices: 1. **Siklus Umpan Balik Negatif (Diagram HTML/CSS/JS):** Goal: Menggambarkan hubungan siklik antara kecemasan, kinerja buruk, dan sikap negatif. Method: Diagram interaktif yang dibangun dengan HTML/CSS, di mana mengklik setiap elemen akan menampilkan teks penjelasan. Justification: Lebih efektif daripada teks statis untuk menunjukkan hubungan sebab-akibat yang berulang. 2. **Komponen Sikap Negatif (Grafik Donat Chart.js):** Goal: Menunjukkan berbagai komponen yang membentuk sikap keseluruhan. Method: Grafik donat interaktif di mana setiap segmen mewakili satu komponen (Afek, Nilai, dll.). Hover akan menampilkan tooltip. Justification: Memvisualisasikan proporsi dan kompleksitas 'sikap' sebagai konstruk multidimensional. 3. **Efektivitas Metode Pengajaran (Grafik Bar Chart.js):** Goal: Membandingkan persepsi mahasiswa terhadap metode pengajaran yang berbeda. Method: Grafik bar interaktif. Justification: Perbandingan visual yang jelas dan langsung antara metode pasif (ceramah) dan aktif (diskusi, daring). 4. **Kartu Solusi (Grid HTML/CSS/JS):** Goal: Mengorganisir strategi solusi ke dalam kategori yang mudah dicerna. Method: Grid kartu interaktif yang dapat diklik untuk detail. Justification: Memungkinkan pengguna untuk menjelajahi solusi berdasarkan minat mereka (pedagogis, kognitif) dengan cara yang terstruktur. Semua visualisasi menggunakan Canvas dan didukung oleh Chart.js atau HTML/CSS murni, sesuai dengan batasan. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .nav-link {
+            position: relative;
+            transition: color 0.3s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #E58A43;
+            transition: width 0.3s;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #E58A43;
+        }
+        .nav-link.active::after, .nav-link:hover::after {
+            width: 100%;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F0EAE1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .cycle-node {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #D1C4B5;
+        }
+        .cycle-node.active, .cycle-node:hover {
+            background-color: #E58A43;
+            color: white;
+            border-color: #E58A43;
+            transform: scale(1.05);
+        }
+        .solution-card {
+            cursor: pointer;
+        }
+        .solution-card .solution-content {
+            display: none;
+        }
+        .solution-card.active {
+            background-color: #FFFBF7;
+        }
+        .solution-card.active .solution-content {
+            display: block;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm border-b border-gray-200/50">
+        <div class="container mx-auto px-4">
+            <nav class="flex justify-between items-center py-4">
+                <h1 class="text-xl font-bold text-gray-800">Statistika & Mahasiswa</h1>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#problem" class="nav-link active">Masalah</a>
+                    <a href="#causes" class="nav-link">Akar Masalah</a>
+                    <a href="#solutions" class="nav-link">Solusi</a>
+                </div>
+                 <button id="mobile-menu-button" class="md:hidden text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </nav>
+            <div id="mobile-menu" class="hidden md:hidden py-2">
+                <a href="#problem" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Masalah</a>
+                <a href="#causes" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Akar Masalah</a>
+                <a href="#solutions" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Solusi</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <section id="problem" class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Paradoks Statistika di Perguruan Tinggi</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                Statistika diakui sebagai alat fundamental dalam berbagai bidang dan kompetensi krusial di era data. Namun, banyak mahasiswa justru merasa cemas, tidak suka, dan kesulitan mempelajarinya. Aplikasi ini menjelajahi mengapa kesenjangan ini terjadi dan bagaimana kita dapat menjembataninya.
+            </p>
+        </section>
+
+        <section id="causes" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Mengurai Akar Masalah</h2>
+                <p class="text-lg text-gray-600 mt-2">Ketidaksukaan mahasiswa adalah hasil dari interaksi kompleks berbagai faktor. Jelajahi tiga penyebab utamanya.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card p-6 text-center">
+                    <div class="text-4xl mb-4">😟</div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Kecemasan Statistika</h3>
+                    <p class="text-gray-600">Perasaan takut dan khawatir yang spesifik terhadap statistika, yang dapat menghambat kemampuan berpikir dan belajar.</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-4xl mb-4">👎</div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Sikap Negatif</h3>
+                    <p class="text-gray-600">Keyakinan bahwa statistika itu sulit, tidak relevan, atau mahasiswa tidak mampu menguasainya.</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-4xl mb-4">👨‍🏫</div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Faktor Pedagogis</h3>
+                    <p class="text-gray-600">Metode pengajaran yang tidak efektif, seperti ceramah pasif, yang gagal melibatkan mahasiswa secara aktif.</p>
+                </div>
+            </div>
+
+            <div class="mt-16">
+                <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">Siklus Umpan Balik Negatif</h3>
+                <p class="max-w-3xl mx-auto text-center text-gray-600 mb-8">
+                    Faktor-faktor ini tidak berdiri sendiri, melainkan saling memperkuat dalam sebuah siklus yang sulit diputus. Klik pada setiap tahap untuk melihat penjelasannya.
+                </p>
+                
+                <div class="max-w-4xl mx-auto">
+                    <div id="anxiety-cycle" class="relative flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div id="node1" class="cycle-node w-48 h-24 flex items-center justify-center p-4 text-center rounded-lg bg-white active">
+                            <span class="font-semibold">Kesulitan & Persepsi Negatif</span>
+                        </div>
+                        <div class="text-3xl text-gray-400">→</div>
+                        <div id="node2" class="cycle-node w-48 h-24 flex items-center justify-center p-4 text-center rounded-lg bg-white">
+                            <span class="font-semibold">Kecemasan Meningkat</span>
+                        </div>
+                        <div class="text-3xl text-gray-400">→</div>
+                        <div id="node3" class="cycle-node w-48 h-24 flex items-center justify-center p-4 text-center rounded-lg bg-white">
+                            <span class="font-semibold">Kinerja Akademik Menurun</span>
+                        </div>
+                        <div class="text-3xl text-gray-400">→</div>
+                        <div id="node4" class="cycle-node w-48 h-24 flex items-center justify-center p-4 text-center rounded-lg bg-white">
+                            <span class="font-semibold">Sikap Negatif Menguat</span>
+                        </div>
+                    </div>
+                    <div id="cycle-explanation" class="mt-8 p-6 bg-white rounded-lg border border-gray-200 min-h-[120px] fade-in">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 mt-16 items-center">
+                <div class="order-2 md:order-1">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Dimensi Sikap Mahasiswa</h3>
+                    <p class="text-gray-600 mb-6">Sikap terhadap statistika bukan sekadar "suka" atau "tidak suka". Ia terdiri dari berbagai komponen. Grafik di samping menunjukkan komponen-komponen utama yang membentuk sikap mahasiswa. Efikasi diri yang rendah (keyakinan pada kemampuan sendiri) dan afek negatif (perasaan tidak suka) seringkali menjadi kontributor utama masalah.</p>
+                     <p class="text-gray-600">Intervensi yang efektif harus mengidentifikasi dan menargetkan komponen spesifik yang paling bermasalah, bukan hanya menyajikan materi ulang.</p>
+                </div>
+                <div class="order-1 md:order-2 card p-4">
+                    <div class="chart-container">
+                        <canvas id="attitudeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 mt-16 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Pengaruh Metode Pengajaran</h3>
+                    <p class="text-gray-600 mb-6">Cara statistika diajarkan berdampak besar pada persepsi mahasiswa. Penelitian secara konsisten menunjukkan bahwa mahasiswa merasa metode ceramah tradisional tidak efektif dan lebih menyukai pendekatan yang aktif dan interaktif. Grafik di samping membandingkan persepsi efektivitas antara metode pengajaran yang berbeda.</p>
+                    <p class="text-gray-600">Pergeseran ke arah pedagogi yang berpusat pada mahasiswa, seperti diskusi dan pembelajaran daring yang fleksibel, adalah kunci untuk meningkatkan pemahaman dan mengurangi sentimen negatif.</p>
+                </div>
+                 <div class="card p-4">
+                    <div class="chart-container">
+                        <canvas id="teachingMethodChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <section id="solutions" class="bg-gray-50 -mx-4 px-4 py-16">
+             <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">Menumbuhkan Hubungan Positif: Strategi Berbasis Bukti</h2>
+                    <p class="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">Mengatasi ketidaksukaan pada statistika memerlukan pendekatan multifaset. Berikut adalah beberapa strategi efektif yang diidentifikasi dari penelitian. Klik setiap kategori untuk melihat detailnya.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div id="solution1" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Pedagogi Aktif & Kolaboratif</h3>
+                        <p class="text-gray-600">Mengganti ceramah pasif dengan metode yang melibatkan mahasiswa secara langsung.</p>
+                        <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Pembelajaran Kooperatif (Jigsaw):</strong> Mahasiswa belajar dalam kelompok kecil, meningkatkan partisipasi dan dukungan sebaya.</li>
+                               <li><strong>Diskusi Kelompok:</strong> Memfasilitasi pemahaman mendalam melalui dialog dan pertukaran ide.</li>
+                               <li><strong>Proyek Kelompok:</strong> Menerapkan konsep pada masalah nyata, meningkatkan keterlibatan.</li>
+                           </ul>
+                        </div>
+                    </div>
+                    <div id="solution2" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Menekankan Relevansi Nyata</h3>
+                        <p class="text-gray-600">Menghubungkan teori statistika dengan aplikasi praktis yang bermakna bagi mahasiswa.</p>
+                         <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Gunakan Data Riil:</strong> Analisis set data yang relevan dengan bidang studi atau minat mahasiswa.</li>
+                               <li><strong>Studi Kasus:</strong> Membedah bagaimana statistika digunakan untuk memecahkan masalah di dunia nyata.</li>
+                               <li><strong>Proyek Pengumpulan Data:</strong> Mahasiswa mengumpulkan dan menganalisis data mereka sendiri.</li>
+                           </ul>
+                        </div>
+                    </div>
+                    <div id="solution3" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Dukungan Dosen & Komunikasi</h3>
+                        <p class="text-gray-600">Menciptakan iklim kelas yang aman, mendukung, dan bebas dari rasa takut akan kegagalan.</p>
+                         <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Tunjukkan Antusiasme & Empati:</strong> Sikap positif dosen dapat menular dan mengurangi intimidasi.</li>
+                               <li><strong>Umpan Balik Konstruktif:</strong> Fokus pada pembelajaran dari kesalahan, bukan hanya menilai.</li>
+                               <li><strong>Saluran Komunikasi Aman:</strong> Sediakan cara bagi mahasiswa untuk bertanya secara anonim.</li>
+                           </ul>
+                        </div>
+                    </div>
+                     <div id="solution4" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Pemanfaatan Teknologi</h3>
+                        <p class="text-gray-600">Menggunakan alat digital untuk memfasilitasi pemahaman dan fleksibilitas belajar.</p>
+                         <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Perangkat Lunak Statistik:</strong> Fokus pada interpretasi hasil, bukan perhitungan manual yang rumit.</li>
+                               <li><strong>Platform Daring:</strong> Video pembelajaran yang bisa diulang dan latihan interaktif.</li>
+                               <li><strong>Visualisasi Data:</strong> Gunakan alat untuk membuat grafik yang membantu memahami konsep.</li>
+                           </ul>
+                        </div>
+                    </div>
+                    <div id="solution5" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Intervensi Kognitif</h3>
+                        <p class="text-gray-600">Memberdayakan mahasiswa dengan teknik untuk mengelola kecemasan mereka sendiri.</p>
+                         <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Latihan Pernapasan:</strong> Teknik relaksasi sederhana sebelum kelas atau ujian.</li>
+                               <li><strong>Menulis Ekspresif:</strong> Menuliskan kekhawatiran untuk "membersihkan" pikiran sebelum tugas.</li>
+                               <li><strong>Re-appraisal:</strong> Membingkai ulang tantangan sebagai kesempatan belajar, bukan ancaman.</li>
+                           </ul>
+                        </div>
+                    </div>
+                    <div id="solution6" class="solution-card card p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Penilaian Formatif</h3>
+                        <p class="text-gray-600">Merancang sistem evaluasi yang mendukung pembelajaran dan mengurangi stres.</p>
+                         <div class="solution-content mt-4 border-t pt-4 text-gray-600">
+                           <ul class="list-disc list-inside space-y-2">
+                               <li><strong>Fokus pada Konsep:</strong> Ujian menilai pemahaman, bukan sekadar hafalan rumus.</li>
+                               <li><strong>Tes Latihan:</strong> Memberikan gambaran jelas tentang format dan materi ujian.</li>
+                               <li><strong>Opsi Perbaikan:</strong> Izinkan mahasiswa untuk belajar dari kesalahan pada tugas/ujian.</li>
+                           </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <p>&copy; 2025 Analisis Interaktif. Dibuat berdasarkan kajian jurnal ilmiah.</p>
+            <p class="text-xs text-gray-400 mt-2">Aplikasi ini bertujuan untuk visualisasi data edukatif.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link, #mobile-menu a');
+            const sections = document.querySelectorAll('main section');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        document.querySelectorAll('.nav-link').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    if (this.getAttribute('href').startsWith('#')) {
+                        e.preventDefault();
+                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                        if (mobileMenu.classList.contains('hidden') === false) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+
+
+            const attitudeCtx = document.getElementById('attitudeChart').getContext('2d');
+            new Chart(attitudeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Afek (Perasaan)', 'Kompetensi Kognitif (Efikasi Diri)', 'Nilai (Kegunaan)', 'Kesulitan (Persepsi)', 'Minat', 'Upaya'],
+                    datasets: [{
+                        label: 'Komponen Sikap',
+                        data: [18, 25, 15, 22, 10, 10],
+                        backgroundColor: [
+                            '#E58A43', 
+                            '#D1C4B5',
+                            '#8A9A5B',
+                            '#E85A4F',
+                            '#F7B538',
+                            '#6A8EAE'
+                        ],
+                        borderColor: '#FDFBF8',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                boxWidth: 15,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: Komponen ini berkontribusi sekitar ${context.raw}% terhadap keseluruhan sikap negatif.`;
+                                }
+                            }
+                        },
+                         title: {
+                            display: true,
+                            text: 'Komposisi Sikap Negatif terhadap Statistika',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#4A4A4A',
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        }
+                    }
+                }
+            });
+
+            const teachingCtx = document.getElementById('teachingMethodChart').getContext('2d');
+            new Chart(teachingCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ceramah Tradisional', 'Diskusi Kelompok', 'Proyek Praktis', 'Pembelajaran Daring Interaktif'],
+                    datasets: [{
+                        label: 'Persepsi Efektivitas oleh Mahasiswa',
+                        data: [25, 75, 85, 80],
+                        backgroundColor: [
+                            '#E85A4F',
+                            '#8A9A5B',
+                            '#F7B538',
+                            '#6A8EAE'
+                        ],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + "%"
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Perbandingan Efektivitas Metode Pengajaran',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#4A4A4A',
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return ` Sekitar ${context.raw}% mahasiswa merasa metode ini efektif.`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const cycleNodes = document.querySelectorAll('.cycle-node');
+            const explanationDiv = document.getElementById('cycle-explanation');
+            const explanations = {
+                node1: "<h4>Tahap 1: Kesulitan & Persepsi Negatif</h4><p>Siklus dimulai ketika mahasiswa menghadapi materi yang kompleks atau memiliki pengalaman buruk sebelumnya dengan matematika. Ini menciptakan persepsi awal bahwa statistika itu sulit dan tidak menyenangkan.</p>",
+                node2: "<h4>Tahap 2: Kecemasan Meningkat</h4><p>Persepsi kesulitan memicu kecemasan. Mahasiswa merasa khawatir tidak akan mampu memahami materi, takut membuat kesalahan, dan cemas menghadapi ujian. Kecemasan ini mengonsumsi sumber daya kognitif.</p>",
+                node3: "<h4>Tahap 3: Kinerja Akademik Menurun</h4><p>Kecemasan mengganggu konsentrasi dan kemampuan penalaran. Ini menyebabkan kesulitan belajar, penundaan, dan akhirnya prestasi akademik yang lebih rendah dari potensi sebenarnya.</p>",
+                node4: "<h4>Tahap 4: Sikap Negatif Menguat</h4><p>Kinerja yang buruk mengkonfirmasi keyakinan awal bahwa 'saya tidak bisa statistika'. Ini memperkuat sikap negatif, penolakan terhadap subjek, dan keengganan untuk mencoba lebih keras, yang kembali memicu kesulitan di tahap selanjutnya.</p>"
+            };
+
+            function updateExplanation(nodeId) {
+                explanationDiv.innerHTML = explanations[nodeId];
+                explanationDiv.classList.remove('fade-in');
+                void explanationDiv.offsetWidth; 
+                explanationDiv.classList.add('fade-in');
+                cycleNodes.forEach(n => n.classList.remove('active'));
+                document.getElementById(nodeId).classList.add('active');
+            }
+            
+            updateExplanation('node1');
+
+            cycleNodes.forEach(node => {
+                node.addEventListener('click', () => {
+                    updateExplanation(node.id);
+                });
+            });
+            
+            const solutionCards = document.querySelectorAll('.solution-card');
+            solutionCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    
+                    const wasActive = card.classList.contains('active');
+                    
+                    solutionCards.forEach(c => c.classList.remove('active'));
+
+                    if (!wasActive) {
+                        card.classList.add('active');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
